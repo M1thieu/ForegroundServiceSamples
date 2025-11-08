@@ -45,26 +45,22 @@ class ExampleForegroundWorker(
             return Result.failure()
         }
 
-        try {
+        return try {
             setForeground(createForegroundInfo())
             setupLocationUpdates()
             startLocationUpdates()
+
+            // simulate long running work by receiving location updates for 15 minutes
+            delay(WORKER_DURATION_MS)
+
+            Result.success()
         } catch (e: Exception) {
-            Log.e(TAG, "Error setting foreground Worker ${e.message}")
+            Log.e(TAG, "Error in foreground Worker: ${e.message}")
+            Result.failure()
+        } finally {
+            // Clean up location updates - runs whether worker completes or is cancelled
+            cleanup()
         }
-
-        // simulate long running work by receiving location updates for 15 minutes
-        delay(WORKER_DURATION_MS)
-
-        // Clean up location updates before completing
-        cleanup()
-        return Result.success()
-    }
-
-    override suspend fun onStopped() {
-        super.onStopped()
-        Log.d(TAG, "Worker stopped - cleaning up resources")
-        cleanup()
     }
 
     private fun cleanup() {
