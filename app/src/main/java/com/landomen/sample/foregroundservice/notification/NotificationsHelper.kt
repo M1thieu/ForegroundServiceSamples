@@ -15,6 +15,8 @@ import kotlin.jvm.java
 internal object NotificationsHelper {
 
     private const val NOTIFICATION_CHANNEL_ID = "general_notification_channel"
+    const val NOTIFICATION_ID_SERVICE = 1
+    const val NOTIFICATION_ID_WORKER = 2
 
     fun createNotificationChannel(context: Context) {
         val notificationManager = context.getSystemService(Service.NOTIFICATION_SERVICE) as NotificationManager

@@ -20,6 +20,7 @@ import com.google.android.gms.location.LocationServices
 import com.landomen.sample.foregroundservice.notification.NotificationsHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.minutes
@@ -52,17 +53,33 @@ class ExampleForegroundWorker(
             Log.e(TAG, "Error setting foreground Worker ${e.message}")
         }
 
-        // simulate long running work by receiving location updates for 10 seconds
+        // simulate long running work by receiving location updates for 15 minutes
         delay(WORKER_DURATION_MS)
+
+        // Clean up location updates before completing
+        cleanup()
         return Result.success()
+    }
+
+    override suspend fun onStopped() {
+        super.onStopped()
+        Log.d(TAG, "Worker stopped - cleaning up resources")
+        cleanup()
+    }
+
+    private fun cleanup() {
+        if (::fusedLocationClient.isInitialized && ::locationCallback.isInitialized) {
+            fusedLocationClient.removeLocationUpdates(locationCallback)
+        }
+        coroutineScope.coroutineContext.cancelChildren()
     }
 
     private fun createForegroundInfo(): ForegroundInfo {
         NotificationsHelper.createNotificationChannel(appContext)
         val notification = NotificationsHelper.buildWorkerNotification(appContext)
         return ForegroundInfo(
-            2, // notification ID
-            notification, // Notification object
+            NotificationsHelper.NOTIFICATION_ID_WORKER,
+            notification,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
             } else {
